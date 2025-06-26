@@ -19,23 +19,16 @@ uniform float uFlow;
 
 out vec4 outColor;
 
-vec4 blendSourceOver(vec4 src, vec4 dst) {
-    float outA   = src.a + dst.a * (1.0 - src.a);
-    vec3  outRGB = src.rgb + dst.rgb * (1.0 - src.a);
-    return vec4(outRGB, outA);
+float easeOutCirc(float t) {
+    return sqrt(1.0 - (t - 1.0) * (t - 1.0));
 }
 
 void main() {
     vec4 shape = texture(uShape, vShapeUv);
-
     vec4 press = texture(uPress, vShapeUv);
-
     vec4 bristles = texture(uBristles, vBristlesUv);
-
     vec4 grain = texture(uGrain, vGrainUv);
-    
     vec4 previous = texture(uPrevious, vGlobalUv);
-
     vec4 last = texture(uPrevious, vDeltaUv);
 
     float bristle = bristles.r;
@@ -56,9 +49,14 @@ void main() {
     a = mix(a, last.a, height * 0.2);
     a = max(a, 0.0);
 
-    float r = mix(previous.r, uColor.r, clamp(height, 0.0, 1.0));
-    float g = mix(previous.g, uColor.g, clamp(height, 0.0, 1.0));
-    float b = mix(previous.b, uColor.b, clamp(height, 0.0, 1.0));
+    float rate = (clamp(a, 0.0, 1.0));
+    if (previous.a > 1.0) {
+        rate = easeOutCirc(height);
+    }
+
+    float r = mix(previous.r, uColor.r, rate);
+    float g = mix(previous.g, uColor.g, rate);
+    float b = mix(previous.b, uColor.b, rate);
 
     outColor = vec4(r, g, b, a);
 }

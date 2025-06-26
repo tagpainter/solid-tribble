@@ -27,11 +27,15 @@ void main() {
 
     vec3 bg = vec3(1.0, 1.0, 1.0);
 
+    float a = clamp(center.a, 0.0, 1.0);
+
     vec3 rgb = center.rgb;
+    if (a > 0.0) {
+        rgb /= a;
+    }
     rgb += d * 0.1;
     rgb = clamp(rgb, 0.0, 1.0);
 
-    float a = clamp(center.a, 0.0, 1.0);
 
     vec3 result = mix(bg, rgb, a);
 
