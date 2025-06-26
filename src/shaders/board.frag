@@ -26,10 +26,15 @@ void main() {
     float d = dx + dy;
 
     vec3 bg = vec3(1.0, 1.0, 1.0);
+
     // vec3 color = vec3(0.29411765, 0.69803922, 1.0);
     vec3 color = vec3(0.306, 0.0, 0.259);
     color += d * 0.1;
     color = clamp(color, 0.0, 1.0);
 
-    outColor = vec4(mix(bg, color, clamp(center.a, 0.0, 1.0)), 1.0);
+    float a = clamp(center.a, 0.0, 1.0);
+
+    vec3 result = mix(bg, color, a);
+
+    outColor = vec4(result, 1.0);
 }

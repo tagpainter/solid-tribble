@@ -186,73 +186,85 @@ async function main() {
         uTexture: gl.getUniformLocation(boardProgram, "uTexture")!,
     };
 
+    function addDab(sample: StrokePoint) {
+        gl.useProgram(dabProgram);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, normBuffer);
+        gl.enableVertexAttribArray(dabAttribs.aNorm);
+        gl.vertexAttribPointer(dabAttribs.aNorm, 2, gl.FLOAT, false, 0, 0);
+        gl.vertexAttribDivisor(dabAttribs.aNorm, 0);
+
+        gl.uniform2f(dabUniforms.uResolution, resolution.x, resolution.y);
+        gl.uniform4f(dabUniforms.uColor, 1, 1, 1, 1);
+
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, shapeTexture);
+        gl.uniform1i(dabUniforms.uShape, 0);
+
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, previous.texture);
+        gl.uniform1i(dabUniforms.uPrevious, 1);
+
+        gl.activeTexture(gl.TEXTURE2);
+        gl.bindTexture(gl.TEXTURE_2D, bristlesTexture);
+        gl.uniform1i(dabUniforms.uBristles, 2);
+
+        gl.activeTexture(gl.TEXTURE3);
+        gl.bindTexture(gl.TEXTURE_2D, grainTexture);
+        gl.uniform1i(dabUniforms.uGrain, 3);
+
+        gl.uniform2f(dabUniforms.uPosition, sample.x, sample.y);
+        gl.uniform1f(dabUniforms.uSize, brushSize);
+        gl.uniform1f(dabUniforms.uAngle, sample.angle!);
+        gl.uniform1f(dabUniforms.uFlow, sample.pressure);
+        gl.uniform2f(dabUniforms.uDelta, sample.dx!, sample.dy!);
+
+        gl.disable(gl.BLEND);
+
+        gl.bindFramebuffer(gl.FRAMEBUFFER, current.framebuffer);
+
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    }
+
+    function swap() {
+        let temp = previous;
+        previous = current;
+        current = temp;
+    }
+
+    function copyDab(sample: StrokePoint) {
+        gl.useProgram(dabCopyProgram);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, normBuffer);
+        gl.enableVertexAttribArray(dabCopyAttribs.aNorm);
+        gl.vertexAttribPointer(dabCopyAttribs.aNorm, 2, gl.FLOAT, false, 0, 0);
+        gl.vertexAttribDivisor(dabCopyAttribs.aNorm, 0);
+
+        gl.uniform2f(dabCopyUniforms.uResolution, resolution.x, resolution.y);
+
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, previous.texture);
+        gl.uniform1i(dabCopyUniforms.uPrevious, 1);
+
+        gl.uniform2f(dabCopyUniforms.uPosition, sample.x, sample.y);
+        gl.uniform1f(dabCopyUniforms.uSize, sample.pressure * brushSize);
+        gl.uniform1f(dabCopyUniforms.uAngle, sample.angle!);
+
+        gl.disable(gl.BLEND);
+
+        gl.bindFramebuffer(gl.FRAMEBUFFER, current.framebuffer);
+
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    }
+
     function draw(samples: StrokePoint[]) {
         for (const sample of samples) {
-            gl.useProgram(dabProgram);
+            addDab(sample);
 
-            gl.bindBuffer(gl.ARRAY_BUFFER, normBuffer);
-            gl.enableVertexAttribArray(dabAttribs.aNorm);
-            gl.vertexAttribPointer(dabAttribs.aNorm, 2, gl.FLOAT, false, 0, 0);
-            gl.vertexAttribDivisor(dabAttribs.aNorm, 0);
-
-            gl.uniform2f(dabUniforms.uResolution, resolution.x, resolution.y);
-            gl.uniform4f(dabUniforms.uColor, 1, 1, 1, 1);
-
-            gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, shapeTexture);
-            gl.uniform1i(dabUniforms.uShape, 0);
-
-            gl.activeTexture(gl.TEXTURE1);
-            gl.bindTexture(gl.TEXTURE_2D, previous.texture);
-            gl.uniform1i(dabUniforms.uPrevious, 1);
-
-            gl.activeTexture(gl.TEXTURE2);
-            gl.bindTexture(gl.TEXTURE_2D, bristlesTexture);
-            gl.uniform1i(dabUniforms.uBristles, 2);
-
-            gl.activeTexture(gl.TEXTURE3);
-            gl.bindTexture(gl.TEXTURE_2D, grainTexture);
-            gl.uniform1i(dabUniforms.uGrain, 3);
-
-            gl.uniform2f(dabUniforms.uPosition, sample.x, sample.y);
-            gl.uniform1f(dabUniforms.uSize, brushSize);
-            gl.uniform1f(dabUniforms.uAngle, sample.angle!);
-            gl.uniform1f(dabUniforms.uFlow, sample.pressure);
-            gl.uniform2f(dabUniforms.uDelta, sample.dx!, sample.dy!);
-
-            gl.disable(gl.BLEND);
-
-            gl.bindFramebuffer(gl.FRAMEBUFFER, current.framebuffer);
-
-            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
-            let temp = previous;
-            previous = current;
-            current = temp;
+            swap();
 
             // COPY
-            gl.useProgram(dabCopyProgram);
-
-            gl.bindBuffer(gl.ARRAY_BUFFER, normBuffer);
-            gl.enableVertexAttribArray(dabCopyAttribs.aNorm);
-            gl.vertexAttribPointer(dabCopyAttribs.aNorm, 2, gl.FLOAT, false, 0, 0);
-            gl.vertexAttribDivisor(dabCopyAttribs.aNorm, 0);
-
-            gl.uniform2f(dabCopyUniforms.uResolution, resolution.x, resolution.y);
-
-            gl.activeTexture(gl.TEXTURE1);
-            gl.bindTexture(gl.TEXTURE_2D, previous.texture);
-            gl.uniform1i(dabCopyUniforms.uPrevious, 1);
-
-            gl.uniform2f(dabCopyUniforms.uPosition, sample.x, sample.y);
-            gl.uniform1f(dabCopyUniforms.uSize, sample.pressure * brushSize);
-            gl.uniform1f(dabCopyUniforms.uAngle, sample.angle!);
-
-            gl.disable(gl.BLEND);
-
-            gl.bindFramebuffer(gl.FRAMEBUFFER, current.framebuffer);
-
-            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            copyDab(sample);
         }
     }
 

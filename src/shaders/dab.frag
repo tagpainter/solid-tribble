@@ -36,7 +36,7 @@ void main() {
 
     float b = bristles.r;
     b -= 1.0 - uFlow;
-    b -= (1.0 - grain.r) * 0.5;
+    b -= (1.0 - grain.r) * 0.4;
     b = clamp(b, 0.0, 1.0);
 
     float height = b * shape.r;
