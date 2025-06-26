@@ -42,14 +42,15 @@ void main() {
     b -= (1.0 - grain.r) * 0.4;
     b = clamp(b, 0.0, 1.0);
 
-    float height = b * shape.r * 2.0 * uFlow;
+    float height = b * shape.r * uFlow;
 
     vec4 value = previous + height;
 
     if (previous.a > 0.0 && height > 0.0) {
         float max = 1.0 + (1.0 - press.r) * uFlow;
         float clamped = mix(previous.a, max, uFlow);
-        value = vec4(clamped) + height * 2.0;
+        value = vec4(clamped) + height * 3.0;
+        value += (1.0 - press.r) * shape.r * 1.0;
     }
 
     value = mix(value, last, height * 0.2);
