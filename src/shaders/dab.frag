@@ -43,12 +43,13 @@ void main() {
 
     vec4 value = previous + height;
 
-    if (height > 0.0) {
+    if (previous.a > 0.0 && height > 0.0) {
         // value = previous - mix(0.25, 0.5, height) + height;
-        value = min(previous, 5.0) + height;
+        // value = min(previous, 1.0) + height * 3.0;
+        value = mix(previous, vec4(1.0), uFlow + 0.1) + height * 3.0;
     }
 
-    value = mix(value, last, smoothstep(0.0, 1.0, height) * 0.2);
+    value = mix(value, last, height * 0.2);
     value = max(value, 0.0);
 
     outColor = value;

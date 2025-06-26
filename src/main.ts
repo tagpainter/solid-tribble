@@ -7,6 +7,7 @@ import DAB_FS from "./shaders/dab.frag?raw";
 import BOARD_VS from "./shaders/board.vert?raw";
 import BOARD_FS from "./shaders/board.frag?raw";
 import type { StrokePoint } from "./stroke-point";
+import { SpeedAlpha } from "./speed-alpha";
 
 const resolution = {
     x: 1024,
@@ -97,8 +98,8 @@ async function main() {
         image: grainImage,
         minFilter: gl.LINEAR,
         magFilter: gl.LINEAR,
-        wrapS: gl.CLAMP_TO_EDGE,
-        wrapT: gl.CLAMP_TO_EDGE,
+        wrapS: gl.REPEAT,
+        wrapT: gl.REPEAT,
     });
 
     const bristlesTexture = createTexture(gl, {
@@ -141,6 +142,9 @@ async function main() {
     let sampler = new StrokeSampler(brushSpacing);
     let stabilizer = new StrokeStabilizer(windowCount);
     let lastPoint: PointerEvent | null = null;
+
+    let speedAlpha = new SpeedAlpha();
+    let speedAlphaValue = 1;
 
     const dabProgram = createProgram(gl, DAB_VS, DAB_FS);
     const dabAttribs = {
@@ -260,10 +264,15 @@ async function main() {
         pointerId = e.pointerId;
         sampler = new StrokeSampler(brushSpacing);
         stabilizer = new StrokeStabilizer(windowCount);
+
+        speedAlpha = new SpeedAlpha();
+        speedAlphaValue = 1;
+        speedAlpha.down(e.offsetX, e.offsetY, e.timeStamp);
+
         const stable = stabilizer.next({
             x: e.offsetX,
             y: e.offsetY,
-            pressure: e.pressure,
+            pressure: e.pressure * speedAlphaValue,
             tiltX: e.tiltX,
             tiltY: e.tiltY,
             timeStamp: e.timeStamp,
@@ -274,10 +283,12 @@ async function main() {
 
     canvas.addEventListener("pointermove", (e) => {
         if (pointerId === e.pointerId && (lastPoint?.x !== e.offsetX || lastPoint?.y !== e.offsetY)) {
+            speedAlphaValue = speedAlpha.move(e.offsetX, e.offsetY, e.timeStamp);
+
             const stable = stabilizer.next({
                 x: e.offsetX,
                 y: e.offsetY,
-                pressure: e.pressure,
+                pressure: e.pressure * speedAlphaValue,
                 tiltX: e.tiltX,
                 tiltY: e.tiltY,
                 timeStamp: e.timeStamp,
@@ -290,10 +301,11 @@ async function main() {
 
     canvas.addEventListener("pointerup", (e) => {
         if (pointerId === e.pointerId) {
+            speedAlphaValue = speedAlpha.move(e.offsetX, e.offsetY, e.timeStamp);
             const stable = stabilizer.next({
                 x: e.offsetX,
                 y: e.offsetY,
-                pressure: e.pressure,
+                pressure: e.pressure * speedAlphaValue,
                 tiltX: e.tiltX,
                 tiltY: e.tiltY,
                 timeStamp: e.timeStamp,

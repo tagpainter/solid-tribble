@@ -40,7 +40,7 @@ void main() {
 
     vShapeUv = rotatedUv;
     vBristlesUv = aNorm;
-    vGrainUv = worldPos / uResolution;
+    vGrainUv = worldPos / uResolution * 2.0;
     vGlobalUv = worldPos / uResolution * vec2(1.0, -1.0) + vec2(0.0, 1.0);
     vDeltaUv = (worldPos - uDelta) / uResolution * vec2(1.0, -1.0) + vec2(0.0, 1.0);
 }
