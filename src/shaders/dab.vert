@@ -3,6 +3,7 @@ precision highp float;
 
 in vec2 aNorm;
 
+uniform vec2 uDelta;
 uniform vec2 uResolution;
 uniform vec2 uPosition;
 uniform float uAngle;
@@ -11,6 +12,8 @@ uniform float uSize;
 out vec2 vShapeUv;
 out vec2 vBristlesUv;
 out vec2 vGlobalUv;
+out vec2 vGrainUv;
+out vec2 vDeltaUv;
 
 const float SQRT_2 = sqrt(2.0);
 
@@ -37,5 +40,7 @@ void main() {
 
     vShapeUv = rotatedUv;
     vBristlesUv = aNorm;
+    vGrainUv = worldPos / uResolution;
     vGlobalUv = worldPos / uResolution * vec2(1.0, -1.0) + vec2(0.0, 1.0);
+    vDeltaUv = (worldPos - uDelta) / uResolution * vec2(1.0, -1.0) + vec2(0.0, 1.0);
 }

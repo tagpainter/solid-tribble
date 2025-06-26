@@ -56,7 +56,7 @@ async function main() {
 
     const bristlesCtx = bristlesCanvas.getContext("2d")!;
 
-    createBristles(bristlesCtx, 0.025, 500);
+    createBristles(bristlesCtx, 0.05, 500);
 
     const canvas = document.createElement("canvas");
     canvas.width = resolution.x;
@@ -74,6 +74,7 @@ async function main() {
     })!;
 
     gl.getExtension("EXT_color_buffer_float");
+    gl.getExtension("OES_texture_float_linear");
 
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
     gl.clearColor(0, 0, 0, 1);
@@ -91,6 +92,15 @@ async function main() {
         wrapT: gl.CLAMP_TO_EDGE,
     });
 
+    const grainImage = await loadImage("/canvas-1.jpg");
+    const grainTexture = createTexture(gl, {
+        image: grainImage,
+        minFilter: gl.LINEAR,
+        magFilter: gl.LINEAR,
+        wrapS: gl.CLAMP_TO_EDGE,
+        wrapT: gl.CLAMP_TO_EDGE,
+    });
+
     const bristlesTexture = createTexture(gl, {
         image: bristlesCanvas,
         minFilter: gl.LINEAR,
@@ -102,6 +112,9 @@ async function main() {
     let previous = createTextureFramebuffer(gl, {
         width: resolution.x,
         height: resolution.y,
+        internalFormat: gl.RGBA16F,
+        format: gl.RGBA,
+        type: gl.FLOAT,
         minFilter: gl.LINEAR,
         magFilter: gl.LINEAR,
         wrapS: gl.CLAMP_TO_EDGE,
@@ -111,13 +124,16 @@ async function main() {
     let current = createTextureFramebuffer(gl, {
         width: resolution.x,
         height: resolution.y,
+        internalFormat: gl.RGBA16F,
+        format: gl.RGBA,
+        type: gl.FLOAT,
         minFilter: gl.LINEAR,
         magFilter: gl.LINEAR,
         wrapS: gl.CLAMP_TO_EDGE,
         wrapT: gl.CLAMP_TO_EDGE,
     });
 
-    const brushSize = 100;
+    const brushSize = 50;
     const brushSpacing = 1;
     const windowCount = 1;
 
@@ -140,6 +156,8 @@ async function main() {
         uShape: gl.getUniformLocation(dabProgram, "uShape")!,
         uBristles: gl.getUniformLocation(dabProgram, "uBristles")!,
         uPrevious: gl.getUniformLocation(dabProgram, "uPrevious")!,
+        uGrain: gl.getUniformLocation(dabProgram, "uGrain")!,
+        uDelta: gl.getUniformLocation(dabProgram, "uDelta")!,
     };
 
     const dabCopyProgram = createProgram(gl, DAB_VS, DAB_FS);
@@ -188,10 +206,15 @@ async function main() {
             gl.bindTexture(gl.TEXTURE_2D, bristlesTexture);
             gl.uniform1i(dabUniforms.uBristles, 2);
 
+            gl.activeTexture(gl.TEXTURE3);
+            gl.bindTexture(gl.TEXTURE_2D, grainTexture);
+            gl.uniform1i(dabUniforms.uGrain, 3);
+
             gl.uniform2f(dabUniforms.uPosition, sample.x, sample.y);
-            gl.uniform1f(dabUniforms.uSize, sample.pressure * brushSize);
+            gl.uniform1f(dabUniforms.uSize, brushSize);
             gl.uniform1f(dabUniforms.uAngle, sample.angle!);
             gl.uniform1f(dabUniforms.uFlow, sample.pressure);
+            gl.uniform2f(dabUniforms.uDelta, sample.dx!, sample.dy!);
 
             gl.disable(gl.BLEND);
 

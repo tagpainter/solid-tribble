@@ -4,10 +4,13 @@ precision highp float;
 in vec2 vShapeUv;
 in vec2 vBristlesUv;
 in vec2 vGlobalUv;
+in vec2 vGrainUv;
+in vec2 vDeltaUv;
 
 uniform sampler2D uPrevious;
 uniform sampler2D uShape;
 uniform sampler2D uBristles;
+uniform sampler2D uGrain;
 
 uniform vec4 uColor;
 uniform float uFlow;
@@ -24,10 +27,29 @@ void main() {
     vec4 shape = texture(uShape, vShapeUv);
 
     vec4 bristles = texture(uBristles, vBristlesUv);
+
+    vec4 grain = texture(uGrain, vGrainUv);
     
     vec4 previous = texture(uPrevious, vGlobalUv);
 
-    vec4 color = vec4(shape.r * bristles.r * uFlow);
+    vec4 last = texture(uPrevious, vDeltaUv);
 
-    outColor = blendSourceOver(color, previous);
+    float b = bristles.r;
+    b -= 1.0 - uFlow;
+    b -= (1.0 - grain.r) * 0.5;
+    b = clamp(b, 0.0, 1.0);
+
+    float height = b * shape.r;
+
+    vec4 value = previous + height;
+
+    if (height > 0.0) {
+        // value = previous - mix(0.25, 0.5, height) + height;
+        value = min(previous, 5.0) + height;
+    }
+
+    value = mix(value, last, smoothstep(0.0, 1.0, height) * 0.2);
+    value = max(value, 0.0);
+
+    outColor = value;
 }
