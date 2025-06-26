@@ -102,6 +102,15 @@ async function main() {
         wrapT: gl.REPEAT,
     });
 
+    const pressImage = await loadImage("/press.png");
+    const pressTexture = createTexture(gl, {
+        image: pressImage,
+        minFilter: gl.LINEAR,
+        magFilter: gl.LINEAR,
+        wrapS: gl.REPEAT,
+        wrapT: gl.REPEAT,
+    });
+
     const bristlesTexture = createTexture(gl, {
         image: bristlesCanvas,
         minFilter: gl.LINEAR,
@@ -162,6 +171,7 @@ async function main() {
         uPrevious: gl.getUniformLocation(dabProgram, "uPrevious")!,
         uGrain: gl.getUniformLocation(dabProgram, "uGrain")!,
         uDelta: gl.getUniformLocation(dabProgram, "uDelta")!,
+        uPress: gl.getUniformLocation(dabProgram, "uPress")!,
     };
 
     const dabCopyProgram = createProgram(gl, DAB_VS, DAB_FS);
@@ -213,6 +223,10 @@ async function main() {
         gl.bindTexture(gl.TEXTURE_2D, grainTexture);
         gl.uniform1i(dabUniforms.uGrain, 3);
 
+        gl.activeTexture(gl.TEXTURE4);
+        gl.bindTexture(gl.TEXTURE_2D, pressTexture);
+        gl.uniform1i(dabUniforms.uPress, 4);
+
         gl.uniform2f(dabUniforms.uPosition, sample.x, sample.y);
         gl.uniform1f(dabUniforms.uSize, brushSize);
         gl.uniform1f(dabUniforms.uAngle, sample.angle!);
@@ -247,7 +261,7 @@ async function main() {
         gl.uniform1i(dabCopyUniforms.uPrevious, 1);
 
         gl.uniform2f(dabCopyUniforms.uPosition, sample.x, sample.y);
-        gl.uniform1f(dabCopyUniforms.uSize, sample.pressure * brushSize);
+        gl.uniform1f(dabCopyUniforms.uSize, brushSize);
         gl.uniform1f(dabCopyUniforms.uAngle, sample.angle!);
 
         gl.disable(gl.BLEND);

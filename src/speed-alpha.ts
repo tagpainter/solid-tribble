@@ -6,42 +6,41 @@ const MIN_ALPHA = 0.5;
 const MAX_ALPHA = 1.0;
 
 export class SpeedAlpha {
-    private currX;
-    private currY;
-    private prevX;
-    private prevY;
-    private time;
+    private prevX: number;
+    private prevY: number;
+    private emaAlpha: number;
+    private smoothing: number;
 
-    constructor() {
-        this.currX = 0;
-        this.currY = 0;
+    /**
+     * @param smoothing
+     */
+    constructor(smoothing: number = 0.2) {
         this.prevX = 0;
         this.prevY = 0;
-        this.time = 0;
+        this.emaAlpha = MAX_ALPHA; // 초기 alpha
+        this.smoothing = smoothing;
     }
 
     down(x: number, y: number, time: number) {
-        this.currX = x;
-        this.currY = y;
         this.prevX = x;
         this.prevY = y;
-        this.time = time;
+        this.emaAlpha = MAX_ALPHA;
     }
 
-    move(x: number, y: number, time: number) {
-        this.currX = x;
-        this.currY = y;
+    move(x: number, y: number, time: number): number {
+        const dx = x - this.prevX;
+        const dy = y - this.prevY;
+        const dist = Math.hypot(dx, dy);
 
-        const dx = this.prevX - this.currX;
-        const dy = this.prevY - this.currY;
+        // 즉시 alpha 값
+        const rawAlpha = mapRange(dist, MIN_DISTANCE, MAX_DISTANCE, MAX_ALPHA, MIN_ALPHA);
 
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const alpha = mapRange(dist, MIN_DISTANCE, MAX_DISTANCE, MAX_ALPHA, MIN_ALPHA);
+        // EMA 적용
+        this.emaAlpha = rawAlpha * this.smoothing + this.emaAlpha * (1 - this.smoothing);
 
-        this.time = time;
         this.prevX = x;
         this.prevY = y;
 
-        return alpha;
+        return this.emaAlpha;
     }
 }
