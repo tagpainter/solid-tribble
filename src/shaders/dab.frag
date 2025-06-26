@@ -44,9 +44,7 @@ void main() {
     vec4 value = previous + height;
 
     if (previous.a > 0.0 && height > 0.0) {
-        // value = previous - mix(0.25, 0.5, height) + height;
-        // value = min(previous, 1.0) + height * 3.0;
-        value = mix(previous, vec4(1.0), uFlow + 0.1) + height * 3.0;
+        value = mix(previous, vec4(1.0), uFlow + 0.1) + height * 5.0;
     }
 
     value = mix(value, last, height * 0.2);
