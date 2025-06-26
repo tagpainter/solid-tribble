@@ -13,7 +13,51 @@ const resolution = {
     y: 1024,
 };
 
+function createBristles(ctx: CanvasRenderingContext2D, dotSize: number, dotCount: number) {
+    const canvas = ctx.canvas;
+    const width = canvas.width;
+    const height = canvas.height;
+
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, width, height);
+
+    const maxRadius = Math.min(width, height) * dotSize;
+
+    for (let i = 0; i < dotCount; i++) {
+        const x = Math.random() * width;
+        const y = Math.random() * height;
+        const r = maxRadius * (0.5 + Math.random() * 0.5);
+
+        const gradient = ctx.createRadialGradient(x, y, 0, x, y, r);
+        gradient.addColorStop(0, "rgba(255, 255, 255, 1)");
+        gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    const imgData = ctx.getImageData(0, 0, width, height);
+    const floatMap = new Float32Array(width * height);
+
+    const data = imgData.data;
+    for (let i = 0; i < width * height; i++) {
+        floatMap[i] = data[i * 4] / 255; // R 채널만 사용 (grayscale)
+    }
+
+    return floatMap;
+}
+
 async function main() {
+    const bristlesCanvas = document.createElement("canvas");
+    bristlesCanvas.width = 128;
+    bristlesCanvas.height = 128;
+
+    const bristlesCtx = bristlesCanvas.getContext("2d")!;
+
+    createBristles(bristlesCtx, 0.025, 500);
+
     const canvas = document.createElement("canvas");
     canvas.width = resolution.x;
     canvas.height = resolution.y;
@@ -29,6 +73,8 @@ async function main() {
         preserveDrawingBuffer: true,
     })!;
 
+    gl.getExtension("EXT_color_buffer_float");
+
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
@@ -39,6 +85,14 @@ async function main() {
     const shapeImage = await loadImage("/shape.png");
     const shapeTexture = createTexture(gl, {
         image: shapeImage,
+        minFilter: gl.LINEAR,
+        magFilter: gl.LINEAR,
+        wrapS: gl.CLAMP_TO_EDGE,
+        wrapT: gl.CLAMP_TO_EDGE,
+    });
+
+    const bristlesTexture = createTexture(gl, {
+        image: bristlesCanvas,
         minFilter: gl.LINEAR,
         magFilter: gl.LINEAR,
         wrapS: gl.CLAMP_TO_EDGE,
@@ -84,7 +138,20 @@ async function main() {
         uColor: gl.getUniformLocation(dabProgram, "uColor")!,
         uFlow: gl.getUniformLocation(dabProgram, "uFlow")!,
         uShape: gl.getUniformLocation(dabProgram, "uShape")!,
+        uBristles: gl.getUniformLocation(dabProgram, "uBristles")!,
         uPrevious: gl.getUniformLocation(dabProgram, "uPrevious")!,
+    };
+
+    const dabCopyProgram = createProgram(gl, DAB_VS, DAB_FS);
+    const dabCopyAttribs = {
+        aNorm: gl.getAttribLocation(dabCopyProgram, "aNorm"),
+    };
+    const dabCopyUniforms = {
+        uResolution: gl.getUniformLocation(dabCopyProgram, "uResolution")!,
+        uPosition: gl.getUniformLocation(dabCopyProgram, "uPosition")!,
+        uAngle: gl.getUniformLocation(dabCopyProgram, "uAngle")!,
+        uSize: gl.getUniformLocation(dabCopyProgram, "uSize")!,
+        uPrevious: gl.getUniformLocation(dabCopyProgram, "uPrevious")!,
     };
 
     const boardProgram = createProgram(gl, BOARD_VS, BOARD_FS);
@@ -98,39 +165,67 @@ async function main() {
     };
 
     function draw(samples: StrokePoint[]) {
-        gl.useProgram(dabProgram);
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, normBuffer);
-        gl.enableVertexAttribArray(dabAttribs.aNorm);
-        gl.vertexAttribPointer(dabAttribs.aNorm, 2, gl.FLOAT, false, 0, 0);
-        gl.vertexAttribDivisor(dabAttribs.aNorm, 0);
-
-        gl.uniform2f(dabUniforms.uResolution, resolution.x, resolution.y);
-        gl.uniform4f(dabUniforms.uColor, 1, 1, 1, 1);
-
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, shapeTexture);
-        gl.uniform1i(dabUniforms.uShape, 0);
-
-        gl.disable(gl.BLEND);
-
         for (const sample of samples) {
-            gl.bindFramebuffer(gl.FRAMEBUFFER, current.framebuffer);
+            gl.useProgram(dabProgram);
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, normBuffer);
+            gl.enableVertexAttribArray(dabAttribs.aNorm);
+            gl.vertexAttribPointer(dabAttribs.aNorm, 2, gl.FLOAT, false, 0, 0);
+            gl.vertexAttribDivisor(dabAttribs.aNorm, 0);
+
+            gl.uniform2f(dabUniforms.uResolution, resolution.x, resolution.y);
+            gl.uniform4f(dabUniforms.uColor, 1, 1, 1, 1);
+
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, shapeTexture);
+            gl.uniform1i(dabUniforms.uShape, 0);
 
             gl.activeTexture(gl.TEXTURE1);
             gl.bindTexture(gl.TEXTURE_2D, previous.texture);
             gl.uniform1i(dabUniforms.uPrevious, 1);
+
+            gl.activeTexture(gl.TEXTURE2);
+            gl.bindTexture(gl.TEXTURE_2D, bristlesTexture);
+            gl.uniform1i(dabUniforms.uBristles, 2);
 
             gl.uniform2f(dabUniforms.uPosition, sample.x, sample.y);
             gl.uniform1f(dabUniforms.uSize, sample.pressure * brushSize);
             gl.uniform1f(dabUniforms.uAngle, sample.angle!);
             gl.uniform1f(dabUniforms.uFlow, sample.pressure);
 
+            gl.disable(gl.BLEND);
+
+            gl.bindFramebuffer(gl.FRAMEBUFFER, current.framebuffer);
+
             gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
             let temp = previous;
             previous = current;
             current = temp;
+
+            // COPY
+            gl.useProgram(dabCopyProgram);
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, normBuffer);
+            gl.enableVertexAttribArray(dabCopyAttribs.aNorm);
+            gl.vertexAttribPointer(dabCopyAttribs.aNorm, 2, gl.FLOAT, false, 0, 0);
+            gl.vertexAttribDivisor(dabCopyAttribs.aNorm, 0);
+
+            gl.uniform2f(dabCopyUniforms.uResolution, resolution.x, resolution.y);
+
+            gl.activeTexture(gl.TEXTURE1);
+            gl.bindTexture(gl.TEXTURE_2D, previous.texture);
+            gl.uniform1i(dabCopyUniforms.uPrevious, 1);
+
+            gl.uniform2f(dabCopyUniforms.uPosition, sample.x, sample.y);
+            gl.uniform1f(dabCopyUniforms.uSize, sample.pressure * brushSize);
+            gl.uniform1f(dabCopyUniforms.uAngle, sample.angle!);
+
+            gl.disable(gl.BLEND);
+
+            gl.bindFramebuffer(gl.FRAMEBUFFER, current.framebuffer);
+
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
         }
     }
 

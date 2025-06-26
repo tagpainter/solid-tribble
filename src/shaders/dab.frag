@@ -2,10 +2,12 @@
 precision highp float;
 
 in vec2 vShapeUv;
+in vec2 vBristlesUv;
 in vec2 vGlobalUv;
 
 uniform sampler2D uPrevious;
 uniform sampler2D uShape;
+uniform sampler2D uBristles;
 
 uniform vec4 uColor;
 uniform float uFlow;
@@ -20,9 +22,12 @@ vec4 blendSourceOver(vec4 src, vec4 dst) {
 
 void main() {
     vec4 shape = texture(uShape, vShapeUv);
-    shape.a = shape.r;
+
+    vec4 bristles = texture(uBristles, vBristlesUv);
     
     vec4 previous = texture(uPrevious, vGlobalUv);
 
-    outColor = blendSourceOver(shape, previous);
+    vec4 color = vec4(shape.r * bristles.r * uFlow);
+
+    outColor = blendSourceOver(color, previous);
 }
