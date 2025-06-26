@@ -1,8 +1,8 @@
 import { mapRange } from "./utils/math";
 
 const MIN_DISTANCE = 0;
-const MAX_DISTANCE = 100;
-const MIN_ALPHA = 0.5;
+const MAX_DISTANCE = 30;
+const MIN_ALPHA = 0.75;
 const MAX_ALPHA = 1.0;
 
 export class SpeedAlpha {

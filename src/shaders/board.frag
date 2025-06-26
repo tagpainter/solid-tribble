@@ -28,7 +28,8 @@ void main() {
     vec3 bg = vec3(1.0, 1.0, 1.0);
 
     // vec3 color = vec3(0.29411765, 0.69803922, 1.0);
-    vec3 color = vec3(0.8, 0.8, 0.8);
+    // vec3 color = vec3(0.8, 0.8, 0.8);
+    vec3 color = vec3(0.2235, 0.3412, 0.7137);
     // vec3 color = vec3(0.306, 0.0, 0.259);
     color += d * 0.1;
     color = clamp(color, 0.0, 1.0);

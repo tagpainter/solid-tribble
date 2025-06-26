@@ -47,13 +47,12 @@ void main() {
     vec4 value = previous + height;
 
     if (previous.a > 0.0 && height > 0.0) {
-        float max = 1.0 + (1.0 - press.r) * uFlow;
-        float clamped = mix(previous.a, max, uFlow);
-        value = vec4(clamped) + height * 3.0;
+        float clamped = mix(previous.a, 1.0, mix(0.5, 1.0, b));
+        value = vec4(clamped) + height * 4.0;
         value += (1.0 - press.r) * shape.r * 1.0;
     }
 
-    value = mix(value, last, height * 0.2);
+    value = mix(value, last, height * 0.4);
     value = max(value, 0.0);
 
     outColor = value;
