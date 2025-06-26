@@ -14,6 +14,7 @@ uniform sampler2D uGrain;
 uniform sampler2D uPress;
 
 uniform vec4 uColor;
+uniform float uPressure;
 uniform float uFlow;
 
 out vec4 outColor;
@@ -37,23 +38,27 @@ void main() {
 
     vec4 last = texture(uPrevious, vDeltaUv);
 
-    float b = bristles.r;
-    b -= 1.0 - uFlow;
-    b -= (1.0 - grain.r) * 0.4;
-    b = clamp(b, 0.0, 1.0);
+    float bristle = bristles.r;
+    bristle -= 1.0 - uPressure;
+    bristle -= (1.0 - grain.r) * 0.4;
+    bristle = clamp(bristle, 0.0, 1.0);
 
-    float height = b * shape.r * uFlow;
+    float height = bristle * shape.r * uFlow;
 
-    vec4 value = previous + height;
+    float a = previous.a + height;
 
     if (previous.a > 0.0 && height > 0.0) {
-        float clamped = mix(previous.a, 1.0, mix(0.5, 1.0, b));
-        value = vec4(clamped) + height * 4.0;
-        value += (1.0 - press.r) * shape.r * 1.0;
+        float clamped = mix(previous.a, 1.0, mix(0.5, 1.0, bristle));
+        a = clamped + height * 2.0;
+        a += (1.0 - press.r) * shape.r * 1.0;
     }
 
-    value = mix(value, last, height * 0.4);
-    value = max(value, 0.0);
+    a = mix(a, last.a, height * 0.2);
+    a = max(a, 0.0);
 
-    outColor = value;
+    float r = mix(previous.r, uColor.r, clamp(height, 0.0, 1.0));
+    float g = mix(previous.g, uColor.g, clamp(height, 0.0, 1.0));
+    float b = mix(previous.b, uColor.b, clamp(height, 0.0, 1.0));
+
+    outColor = vec4(r, g, b, a);
 }

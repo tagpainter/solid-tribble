@@ -8,6 +8,9 @@ import BOARD_VS from "./shaders/board.vert?raw";
 import BOARD_FS from "./shaders/board.frag?raw";
 import type { StrokePoint } from "./stroke-point";
 import { SpeedAlpha } from "./speed-alpha";
+import { hexToFloatRGB } from "./utils/color";
+
+const colors = ["#d3b997", "#4f7bd5", "#34cff0", "#f03fa7", "#ffc05f", "#3957b6"];
 
 const resolution = {
     x: 1024,
@@ -51,6 +54,23 @@ function createBristles(ctx: CanvasRenderingContext2D, dotSize: number, dotCount
 }
 
 async function main() {
+    const colorDiv = document.createElement("div");
+    document.body.appendChild(colorDiv);
+
+    for (const c of colors) {
+        const colorButton = document.createElement("button");
+
+        colorButton.style.width = "30px";
+        colorButton.style.height = "30px";
+        colorButton.style.border = "0px";
+        colorButton.style.backgroundColor = c;
+        colorButton.onclick = () => {
+            color = hexToFloatRGB(c);
+        };
+
+        colorDiv.appendChild(colorButton);
+    }
+
     const bristlesCanvas = document.createElement("canvas");
     bristlesCanvas.width = 128;
     bristlesCanvas.height = 128;
@@ -155,6 +175,8 @@ async function main() {
     let speedAlpha = new SpeedAlpha();
     let speedAlphaValue = 1;
 
+    let color = hexToFloatRGB(colors[0]);
+
     const dabProgram = createProgram(gl, DAB_VS, DAB_FS);
     const dabAttribs = {
         aNorm: gl.getAttribLocation(dabProgram, "aNorm")!,
@@ -165,13 +187,14 @@ async function main() {
         uAngle: gl.getUniformLocation(dabProgram, "uAngle")!,
         uSize: gl.getUniformLocation(dabProgram, "uSize")!,
         uColor: gl.getUniformLocation(dabProgram, "uColor")!,
-        uFlow: gl.getUniformLocation(dabProgram, "uFlow")!,
+        uPressure: gl.getUniformLocation(dabProgram, "uPressure")!,
         uShape: gl.getUniformLocation(dabProgram, "uShape")!,
         uBristles: gl.getUniformLocation(dabProgram, "uBristles")!,
         uPrevious: gl.getUniformLocation(dabProgram, "uPrevious")!,
         uGrain: gl.getUniformLocation(dabProgram, "uGrain")!,
         uDelta: gl.getUniformLocation(dabProgram, "uDelta")!,
         uPress: gl.getUniformLocation(dabProgram, "uPress")!,
+        uFlow: gl.getUniformLocation(dabProgram, "uFlow")!,
     };
 
     const dabCopyProgram = createProgram(gl, DAB_VS, DAB_FS);
@@ -205,7 +228,7 @@ async function main() {
         gl.vertexAttribDivisor(dabAttribs.aNorm, 0);
 
         gl.uniform2f(dabUniforms.uResolution, resolution.x, resolution.y);
-        gl.uniform4f(dabUniforms.uColor, 1, 1, 1, 1);
+        gl.uniform4f(dabUniforms.uColor, color[0], color[1], color[2], 1);
 
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, shapeTexture);
@@ -230,7 +253,8 @@ async function main() {
         gl.uniform2f(dabUniforms.uPosition, sample.x, sample.y);
         gl.uniform1f(dabUniforms.uSize, brushSize);
         gl.uniform1f(dabUniforms.uAngle, sample.angle!);
-        gl.uniform1f(dabUniforms.uFlow, sample.pressure);
+        gl.uniform1f(dabUniforms.uPressure, sample.pressure);
+        gl.uniform1f(dabUniforms.uFlow, 0.5);
         gl.uniform2f(dabUniforms.uDelta, sample.dx!, sample.dy!);
 
         gl.disable(gl.BLEND);
@@ -278,7 +302,7 @@ async function main() {
             swap();
 
             // COPY
-            copyDab(sample);
+            // copyDab(sample);
         }
     }
 
@@ -295,10 +319,12 @@ async function main() {
         speedAlphaValue = 1;
         speedAlpha.down(e.offsetX, e.offsetY, e.timeStamp);
 
+        const pressure = e.pointerType === "pen" ? e.pressure : 0.5;
+
         const stable = stabilizer.next({
             x: e.offsetX,
             y: e.offsetY,
-            pressure: e.pressure * speedAlphaValue,
+            pressure: pressure * speedAlphaValue,
             tiltX: e.tiltX,
             tiltY: e.tiltY,
             timeStamp: e.timeStamp,
@@ -311,10 +337,12 @@ async function main() {
         if (pointerId === e.pointerId && (lastPoint?.x !== e.offsetX || lastPoint?.y !== e.offsetY)) {
             speedAlphaValue = speedAlpha.move(e.offsetX, e.offsetY, e.timeStamp);
 
+            const pressure = e.pointerType === "pen" ? e.pressure : 0.5;
+
             const stable = stabilizer.next({
                 x: e.offsetX,
                 y: e.offsetY,
-                pressure: e.pressure * speedAlphaValue,
+                pressure: pressure * speedAlphaValue,
                 tiltX: e.tiltX,
                 tiltY: e.tiltY,
                 timeStamp: e.timeStamp,
@@ -328,10 +356,13 @@ async function main() {
     canvas.addEventListener("pointerup", (e) => {
         if (pointerId === e.pointerId) {
             speedAlphaValue = speedAlpha.move(e.offsetX, e.offsetY, e.timeStamp);
+
+            const pressure = e.pointerType === "pen" ? e.pressure : 0.5;
+
             const stable = stabilizer.next({
                 x: e.offsetX,
                 y: e.offsetY,
-                pressure: e.pressure * speedAlphaValue,
+                pressure: pressure * speedAlphaValue,
                 tiltX: e.tiltX,
                 tiltY: e.tiltY,
                 timeStamp: e.timeStamp,
