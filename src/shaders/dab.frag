@@ -49,14 +49,20 @@ void main() {
     a = mix(a, last.a, height * 0.2);
     a = max(a, 0.0);
 
-    float rate = (clamp(a, 0.0, 1.0));
-    if (previous.a > 1.0) {
-        rate = easeOutCirc(height);
-    }
+    // RGB 블렌딩
+    float r = previous.r;
+    float g = previous.g;
+    float b = previous.b;
 
-    float r = mix(previous.r, uColor.r, rate);
-    float g = mix(previous.g, uColor.g, rate);
-    float b = mix(previous.b, uColor.b, rate);
+    if (shape.r > 0.0) {
+        float rate = easeOutCirc(height);
+        if (previous.a < 1.0) {
+            rate = clamp(a, 0.0, 1.0);
+        }
+        r = mix(r, uColor.r, rate);
+        g = mix(g, uColor.g, rate);
+        b = mix(b, uColor.b, rate);
+    }
 
     outColor = vec4(r, g, b, a);
 }

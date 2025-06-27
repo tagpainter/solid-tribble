@@ -300,10 +300,10 @@ async function main() {
             addDab(sample);
 
             swap();
-
-            // COPY
-            // copyDab(sample);
         }
+
+        // COPY
+        copyDab(samples[samples.length - 1]);
     }
 
     canvas.addEventListener("touchmove", (e) => {
