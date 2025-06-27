@@ -1,0 +1,10 @@
+<svg version="1.2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+	<title>새 프로젝트</title>
+	<style>
+		.s0 { fill: #3957b6 } 
+	</style>
+	<g id="Layer 1">
+		<path id="모양 1" fill-rule="evenodd" class="s0" d="m411 639c-131.1 0-237-105.9-237-237 0-131.1 105.9-237 237-237 131.1 0 237 105.9 237 237 0 131.1-105.9 237-237 237z"/>
+		<path id="모양 2" fill-rule="evenodd" class="s0" d="m849 447v412h-412v-412z"/>
+	</g>
+</svg>

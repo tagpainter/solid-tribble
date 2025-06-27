@@ -5,6 +5,7 @@ in vec2 vUv;
 
 uniform vec2 uResolution;
 uniform sampler2D uTexture;
+uniform sampler2D uSketch;
 
 out vec4 outColor;
 
@@ -14,6 +15,9 @@ float easeOutCirc(float x) {
 
 void main() {
     vec2 texel = vec2(1.0 / uResolution);
+    
+    vec4 sketch = texture(uSketch, vUv);
+    if (sketch.a > 0.0) sketch.rgb /= sketch.a;
     
     vec4 center = texture(uTexture, vUv);
     vec4 top = texture(uTexture, vUv + vec2(0.0, texel.y));
@@ -26,6 +30,8 @@ void main() {
     float d = dx + dy;
 
     vec3 bg = vec3(1.0, 1.0, 1.0);
+
+    bg = mix(bg, sketch.rgb, sketch.a);
 
     float a = clamp(center.a, 0.0, 1.0);
 

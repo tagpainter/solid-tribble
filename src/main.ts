@@ -9,6 +9,8 @@ import BOARD_FS from "./shaders/board.frag?raw";
 import type { StrokePoint } from "./stroke-point";
 import { SpeedAlpha } from "./speed-alpha";
 import { hexToFloatRGB } from "./utils/color";
+import { loadSvg, svgToUrl } from "./utils/svg";
+import { StrokeSnapSampler } from "./stroke-sampler-snap";
 
 const colors = ["#d3b997", "#4f7bd5", "#34cff0", "#f03fa7", "#ffc05f", "#3957b6"];
 
@@ -53,7 +55,43 @@ function createBristles(ctx: CanvasRenderingContext2D, dotSize: number, dotCount
     return floatMap;
 }
 
+function createSketchSvg(source: SVGElement) {
+    const NS = "http://www.w3.org/2000/svg";
+
+    const width = source.getAttribute("width");
+    const height = source.getAttribute("height");
+
+    const svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("xmlns", NS);
+    svg.setAttribute("version", "1.2");
+    svg.setAttribute("width", `${width}`);
+    svg.setAttribute("height", `${height}`);
+    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+
+    const paths = source.querySelectorAll("path");
+
+    for (const path of paths) {
+        const d = path.getAttribute("d")!;
+        const newPath = document.createElementNS(NS, "path");
+        svg.appendChild(newPath);
+        newPath.setAttribute("d", d);
+        newPath.setAttribute("stroke-miterlimit", "2");
+        newPath.setAttribute("stroke-dasharray", "5 2");
+        newPath.setAttribute("stroke-width", "2");
+        newPath.setAttribute("stroke", "#666");
+        newPath.setAttribute("fill", "none");
+    }
+
+    return svg;
+}
+
 async function main() {
+    const svg = await loadSvg("/path.svg");
+    const paths = Array.from(svg.querySelectorAll("path")).map((p) => p.getAttribute("d")!);
+    const sketchSvg = createSketchSvg(svg);
+    const sketchUrl = svgToUrl(sketchSvg);
+    const sketchImage = await loadImage(sketchUrl);
+
     const colorDiv = document.createElement("div");
     document.body.appendChild(colorDiv);
 
@@ -98,6 +136,7 @@ async function main() {
     gl.getExtension("OES_texture_float_linear");
 
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
@@ -139,6 +178,14 @@ async function main() {
         wrapT: gl.CLAMP_TO_EDGE,
     });
 
+    const sketchTexture = createTexture(gl, {
+        image: sketchImage,
+        minFilter: gl.LINEAR,
+        magFilter: gl.LINEAR,
+        wrapS: gl.CLAMP_TO_EDGE,
+        wrapT: gl.CLAMP_TO_EDGE,
+    });
+
     let previous = createTextureFramebuffer(gl, {
         width: resolution.x,
         height: resolution.y,
@@ -168,7 +215,7 @@ async function main() {
     const windowCount = 1;
 
     let pointerId: number | null = null;
-    let sampler = new StrokeSampler(brushSpacing);
+    let sampler = new StrokeSnapSampler(paths, brushSpacing);
     let stabilizer = new StrokeStabilizer(windowCount);
     let lastPoint: PointerEvent | null = null;
 
@@ -217,6 +264,7 @@ async function main() {
     const boardUniforms = {
         uResolution: gl.getUniformLocation(boardProgram, "uResolution")!,
         uTexture: gl.getUniformLocation(boardProgram, "uTexture")!,
+        uSketch: gl.getUniformLocation(boardProgram, "uSketch"),
     };
 
     function addDab(sample: StrokePoint) {
@@ -314,7 +362,7 @@ async function main() {
 
     canvas.addEventListener("pointerdown", (e) => {
         pointerId = e.pointerId;
-        sampler = new StrokeSampler(brushSpacing);
+        sampler = new StrokeSnapSampler(paths, brushSpacing);
         stabilizer = new StrokeStabilizer(windowCount);
 
         speedAlpha = new SpeedAlpha();
@@ -397,6 +445,10 @@ async function main() {
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, current.texture);
         gl.uniform1i(boardUniforms.uTexture, 0);
+
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, sketchTexture);
+        gl.uniform1i(boardUniforms.uSketch, 1);
 
         gl.viewport(0, 0, resolution.x, resolution.y);
 
