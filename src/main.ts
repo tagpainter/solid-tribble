@@ -163,7 +163,7 @@ async function main() {
         wrapT: gl.CLAMP_TO_EDGE,
     });
 
-    const brushSize = 50;
+    const brushSize = 40;
     const brushSpacing = 1;
     const windowCount = 1;
 
@@ -300,10 +300,12 @@ async function main() {
             addDab(sample);
 
             swap();
+
+            // COPY
+            // copyDab(sample);
         }
 
-        // COPY
-        copyDab(samples[samples.length - 1]);
+        // copyDab(samples[samples.length - 1]);
     }
 
     canvas.addEventListener("touchmove", (e) => {

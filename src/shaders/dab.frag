@@ -56,7 +56,7 @@ void main() {
 
     if (shape.r > 0.0) {
         float rate = easeOutCirc(height);
-        if (previous.a < 1.0) {
+        if (previous.a <= 1.0) {
             rate = clamp(a, 0.0, 1.0);
         }
         r = mix(r, uColor.r, rate);
