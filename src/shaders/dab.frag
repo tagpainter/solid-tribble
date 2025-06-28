@@ -42,7 +42,7 @@ void main() {
 
     if (previous.a > 0.0 && height > 0.0) {
         float clamped = mix(previous.a, 1.0, mix(0.5, 1.0, bristle));
-        a = clamped + height * 2.0;
+        a = clamped + height * 4.0;
         a += (1.0 - press.r) * shape.r * 1.0;
     }
 
