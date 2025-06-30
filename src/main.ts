@@ -86,7 +86,7 @@ function createSketchSvg(source: SVGElement) {
 }
 
 async function main() {
-    const svg = await loadSvg("/path.svg");
+    const svg = await loadSvg("/artst_path.svg");
     const paths = Array.from(svg.querySelectorAll("path")).map((p) => p.getAttribute("d")!);
     const sketchSvg = createSketchSvg(svg);
     const sketchUrl = svgToUrl(sketchSvg);
@@ -210,7 +210,7 @@ async function main() {
         wrapT: gl.CLAMP_TO_EDGE,
     });
 
-    const brushSize = 40;
+    const brushSize = 54;
     const brushSpacing = 1;
     const windowCount = 1;
 
