@@ -1,45 +1,21 @@
 import type { StrokePoint } from "./stroke-point";
 import paper from "paper";
 
-paper.setup([1, 1]);
-paper.view.autoUpdate = false;
-paper.settings.insertItems = false;
-
 export class StrokeSnapSampler {
-    private paths: paper.Path[];
-    private path?: paper.Path;
+    private path: paper.Path;
     private spacing: number;
     private remainder: number;
     private lastOffset?: number;
     private lastPoint?: StrokePoint;
     private lastSample?: { x: number; y: number };
 
-    constructor(paths: string[], spacing: number) {
-        this.paths = paths.map((d) => new paper.Path(d));
+    constructor(path: paper.Path, spacing: number) {
+        this.path = path;
         this.spacing = spacing;
         this.remainder = spacing;
     }
 
-    private findNearestPath(point: { x: number; y: number }): paper.Path {
-        let bestDist2 = Infinity;
-        let bestPath: paper.Path | null = null;
-        for (const p of this.paths) {
-            const loc = p.getNearestLocation(point)!;
-            const d2 = loc.point.getDistance(point) ** 2;
-            if (d2 < bestDist2) {
-                bestDist2 = d2;
-                bestPath = p;
-            }
-        }
-        return bestPath!;
-    }
-
     next(point: StrokePoint): StrokePoint[] {
-        // 1) 활성 패스 결정
-        if (!this.path) {
-            this.path = this.findNearestPath(point);
-        }
-
         // 2) 현재/이전 offset
         const loc = this.path.getNearestLocation(point)!;
         const toOff = loc.offset;

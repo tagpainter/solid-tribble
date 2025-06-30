@@ -1,4 +1,3 @@
-import { StrokeSampler } from "./stroke-sampler";
 import { StrokeStabilizer } from "./stroke-stabilizer";
 import { createBuffer, createProgram, createTexture, createTextureFramebuffer } from "./utils/gl";
 import { loadImage } from "./utils/image";
@@ -8,9 +7,14 @@ import BOARD_VS from "./shaders/board.vert?raw";
 import BOARD_FS from "./shaders/board.frag?raw";
 import type { StrokePoint } from "./stroke-point";
 import { SpeedAlpha } from "./speed-alpha";
-import { hexToFloatRGB } from "./utils/color";
+import { hexToFloatRGB, stringToFloatRGB } from "./utils/color";
 import { loadSvg, svgToUrl } from "./utils/svg";
 import { StrokeSnapSampler } from "./stroke-sampler-snap";
+import paper from "paper";
+
+paper.setup([1, 1]);
+paper.view.autoUpdate = false;
+paper.settings.insertItems = false;
 
 const colors = ["#d3b997", "#4f7bd5", "#34cff0", "#f03fa7", "#ffc05f", "#3957b6"];
 
@@ -87,10 +91,18 @@ function createSketchSvg(source: SVGElement) {
 
 async function main() {
     const svg = await loadSvg("/artst_path.svg");
-    const paths = Array.from(svg.querySelectorAll("path")).map((p) => p.getAttribute("d")!);
+    document.body.appendChild(svg);
+    const paths = Array.from(svg.querySelectorAll("path")).map((p) => {
+        const computedStyle = getComputedStyle(p);
+        return {
+            d: p.getAttribute("d")!,
+            color: computedStyle.stroke!,
+        };
+    });
     const sketchSvg = createSketchSvg(svg);
     const sketchUrl = svgToUrl(sketchSvg);
     const sketchImage = await loadImage(sketchUrl);
+    svg.remove();
 
     const colorDiv = document.createElement("div");
     document.body.appendChild(colorDiv);
@@ -103,7 +115,7 @@ async function main() {
         colorButton.style.border = "0px";
         colorButton.style.backgroundColor = c;
         colorButton.onclick = () => {
-            color = hexToFloatRGB(c);
+            color = stringToFloatRGB(c);
         };
 
         colorDiv.appendChild(colorButton);
@@ -215,14 +227,14 @@ async function main() {
     const windowCount = 1;
 
     let pointerId: number | null = null;
-    let sampler = new StrokeSnapSampler(paths, brushSpacing);
+    let sampler: StrokeSnapSampler | null = null;
     let stabilizer = new StrokeStabilizer(windowCount);
     let lastPoint: PointerEvent | null = null;
 
     let speedAlpha = new SpeedAlpha();
     let speedAlphaValue = 1;
 
-    let color = hexToFloatRGB(colors[0]);
+    let color = stringToFloatRGB(colors[0]);
 
     const dabProgram = createProgram(gl, DAB_VS, DAB_FS);
     const dabAttribs = {
@@ -318,6 +330,24 @@ async function main() {
         current = temp;
     }
 
+    function findBestPath(point: { x: number; y: number }) {
+        let bestDist2 = Infinity;
+        let bestPath: paper.Path | null = null;
+        let bestColor: string | null = null;
+        for (const p of paths) {
+            const path = new paper.Path(p.d);
+            const loc = path.getNearestLocation(point)!;
+            const d2 = loc.point.getDistance(point) ** 2;
+            if (d2 < bestDist2) {
+                bestDist2 = d2;
+                bestPath = path;
+                bestColor = p.color;
+            }
+        }
+        console.log(bestPath);
+        return { path: bestPath!, color: bestColor! };
+    }
+
     function copyDab(sample: StrokePoint) {
         gl.useProgram(dabCopyProgram);
 
@@ -361,9 +391,15 @@ async function main() {
     });
 
     canvas.addEventListener("pointerdown", (e) => {
+        const best = findBestPath({
+            x: e.offsetX,
+            y: e.offsetY,
+        });
+
         pointerId = e.pointerId;
-        sampler = new StrokeSnapSampler(paths, brushSpacing);
+        sampler = new StrokeSnapSampler(best.path, brushSpacing);
         stabilizer = new StrokeStabilizer(windowCount);
+        color = stringToFloatRGB(best.color);
 
         speedAlpha = new SpeedAlpha();
         speedAlphaValue = 1;
@@ -384,7 +420,7 @@ async function main() {
     });
 
     canvas.addEventListener("pointermove", (e) => {
-        if (pointerId === e.pointerId && (lastPoint?.x !== e.offsetX || lastPoint?.y !== e.offsetY)) {
+        if (sampler != null && pointerId === e.pointerId && (lastPoint?.x !== e.offsetX || lastPoint?.y !== e.offsetY)) {
             speedAlphaValue = speedAlpha.move(e.offsetX, e.offsetY, e.timeStamp);
 
             const pressure = e.pointerType === "pen" ? e.pressure : 0.5;
@@ -404,7 +440,7 @@ async function main() {
     });
 
     canvas.addEventListener("pointerup", (e) => {
-        if (pointerId === e.pointerId) {
+        if (sampler != null && pointerId === e.pointerId) {
             speedAlphaValue = speedAlpha.move(e.offsetX, e.offsetY, e.timeStamp);
 
             const pressure = e.pointerType === "pen" ? e.pressure : 0.5;

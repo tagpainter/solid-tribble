@@ -14,6 +14,21 @@ export function hexToFloatRGB(hex: string): [number, number, number] {
     return [((int >> 16) & 0xff) / 255, ((int >> 8) & 0xff) / 255, (int & 0xff) / 255];
 }
 
+export function rgbToFloatRGB(color: string): [number, number, number] {
+    const [r, g, b] = color.replace("rgb(", "").replace(")", "").split(",").map(Number);
+    return [r / 255, g / 255, b / 255];
+}
+
+export function stringToFloatRGB(color: string): [number, number, number] {
+    if (color.startsWith("#")) {
+        return hexToFloatRGB(color);
+    } else if (color.startsWith("rgb(")) {
+        return rgbToFloatRGB(color);
+    } else {
+        throw new Error("Unknown format.");
+    }
+}
+
 export function rgbToHex(rgb: string): string {
     const match = rgb.match(/^rgb\s*\(\s*(\d+),\s*(\d+),\s*(\d+)\s*\)$/);
     if (!match) return rgb;
