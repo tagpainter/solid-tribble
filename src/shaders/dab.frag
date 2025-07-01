@@ -54,7 +54,7 @@ void main() {
     float g = previous.g;
     float b = previous.b;
 
-    if (shape.r > 0.0) {
+    if (height > 0.0) {
         float rate = easeOutCirc(height);
         if (previous.a <= 1.0) {
             rate = clamp(a, 0.0, 1.0);

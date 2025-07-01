@@ -11,6 +11,7 @@ import { hexToFloatRGB, stringToFloatRGB } from "./utils/color";
 import { loadSvg, svgToUrl } from "./utils/svg";
 import { StrokeSnapSampler } from "./stroke-sampler-snap";
 import paper from "paper";
+import { StrokeSampler } from "./stroke-sampler";
 
 paper.setup([1, 1]);
 paper.view.autoUpdate = false;
@@ -380,7 +381,7 @@ async function main() {
             swap();
 
             // COPY
-            // copyDab(sample);
+            copyDab(sample);
         }
 
         // copyDab(samples[samples.length - 1]);
