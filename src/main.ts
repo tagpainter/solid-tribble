@@ -7,11 +7,11 @@ import BOARD_VS from "./shaders/board.vert?raw";
 import BOARD_FS from "./shaders/board.frag?raw";
 import type { StrokePoint } from "./stroke-point";
 import { SpeedAlpha } from "./speed-alpha";
-import { hexToFloatRGB, stringToFloatRGB } from "./utils/color";
+import { stringToFloatRGB } from "./utils/color";
 import { loadSvg, svgToUrl } from "./utils/svg";
 import { StrokeSnapSampler } from "./stroke-sampler-snap";
 import paper from "paper";
-import { StrokeSampler } from "./stroke-sampler";
+import parse, { DxfParser } from "dxf-parser";
 
 paper.setup([1, 1]);
 paper.view.autoUpdate = false;
@@ -90,9 +90,25 @@ function createSketchSvg(source: SVGElement) {
     return svg;
 }
 
+async function testLoadDxf() {
+    const res = await fetch("/artst_path.dxf");
+    const text = await res.text();
+    const parser = new DxfParser();
+    try {
+        const dxf = parser.parseSync(text);
+        console.log(dxf);
+    } catch (error) {
+        console.error(error);
+    }
+}
+
 async function main() {
+    await testLoadDxf();
+
     const svg = await loadSvg("/artst_path.svg");
+
     document.body.appendChild(svg);
+
     const paths = Array.from(svg.querySelectorAll("path")).map((p) => {
         const computedStyle = getComputedStyle(p);
         return {
@@ -100,6 +116,7 @@ async function main() {
             color: computedStyle.stroke!,
         };
     });
+
     const sketchSvg = createSketchSvg(svg);
     const sketchUrl = svgToUrl(sketchSvg);
     const sketchImage = await loadImage(sketchUrl);

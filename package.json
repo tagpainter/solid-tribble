@@ -13,6 +13,7 @@
         "vite": "^6.3.5"
     },
     "dependencies": {
+        "dxf-parser": "^1.1.2",
         "paper": "^0.12.18"
     }
 }
