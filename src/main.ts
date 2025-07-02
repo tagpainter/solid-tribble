@@ -172,14 +172,14 @@ function createColorMap(ctx: CanvasRenderingContext2D, dotSize: number, dotCount
     const darkRgb = hslToRgb({
         h,
         s: 1, // 채도 최대로
-        l: Math.max(0, l - 0.2),
+        l: l * 0.8,
     });
 
     // 4. 밝게 만든 색상 (기존과 동일)
     const lightRgb = hslToRgb({
         h,
         s: 1, // 채도 최대로
-        l: Math.max(0, l + 0.2),
+        l,
     });
 
     // 5. 랜덤으로 점(dot) 그리기
