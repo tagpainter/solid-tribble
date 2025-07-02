@@ -7,7 +7,7 @@ import BOARD_VS from "./shaders/board.vert?raw";
 import BOARD_FS from "./shaders/board.frag?raw";
 import type { StrokePoint } from "./stroke-point";
 import { SpeedAlpha } from "./speed-alpha";
-import { stringToFloatRGB } from "./utils/color";
+import { hexToRgb, hslToRgb, rgbToHsl, rotateHue, stringToFloatRGB, type Rgb } from "./utils/color";
 import { loadSvg, svgToUrl } from "./utils/svg";
 import { StrokeSnapSampler } from "./stroke-sampler-snap";
 import paper from "paper";
@@ -63,124 +63,22 @@ function createBristles(ctx: CanvasRenderingContext2D, dotSize: number, dotCount
 function createColorMap(ctx: CanvasRenderingContext2D, dotSize: number, dotCount: number, baseColorHex: string): void {
     const { width, height } = ctx.canvas;
 
-    // 1. 배경을 baseColorHex로 채우기
     ctx.fillStyle = baseColorHex;
     ctx.fillRect(0, 0, width, height);
-
-    // --- Helper Functions & Types ---
-    interface RGB {
-        r: number;
-        g: number;
-        b: number;
-    }
-
-    /** hex 문자열 → RGB 객체 */
-    function hexToRgb(hex: string): RGB {
-        const h = hex.replace(/^#/, "");
-        const full =
-            h.length === 3
-                ? h
-                      .split("")
-                      .map((c) => c + c)
-                      .join("")
-                : h;
-        const bigint = parseInt(full, 16);
-        return {
-            r: (bigint >> 16) & 0xff,
-            g: (bigint >> 8) & 0xff,
-            b: bigint & 0xff,
-        };
-    }
-
-    /** RGB → HSL */
-    function rgbToHsl({ r, g, b }: RGB): { h: number; s: number; l: number } {
-        const R = r / 255,
-            G = g / 255,
-            B = b / 255;
-        const max = Math.max(R, G, B),
-            min = Math.min(R, G, B);
-        let h = 0,
-            s = 0,
-            l = (max + min) / 2;
-
-        if (max !== min) {
-            const d = max - min;
-            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-            switch (max) {
-                case R:
-                    h = (G - B) / d + (G < B ? 6 : 0);
-                    break;
-                case G:
-                    h = (B - R) / d + 2;
-                    break;
-                case B:
-                    h = (R - G) / d + 4;
-                    break;
-            }
-            h /= 6;
-        }
-        return { h, s, l };
-    }
-
-    /** HSL → RGB */
-    function hslToRgb({ h, s, l }: { h: number; s: number; l: number }): RGB {
-        function hue2rgb(p: number, q: number, t: number): number {
-            if (t < 0) t += 1;
-            if (t > 1) t -= 1;
-            if (t < 1 / 6) return p + (q - p) * 6 * t;
-            if (t < 1 / 2) return q;
-            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-            return p;
-        }
-
-        let R: number, G: number, B: number;
-        if (s === 0) {
-            R = G = B = l; // achromatic
-        } else {
-            const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-            const p = 2 * l - q;
-            R = hue2rgb(p, q, h + 1 / 3);
-            G = hue2rgb(p, q, h);
-            B = hue2rgb(p, q, h - 1 / 3);
-        }
-        return {
-            r: Math.round(R * 255),
-            g: Math.round(G * 255),
-            b: Math.round(B * 255),
-        };
-    }
-
-    function rotateHue(h: number, angleDeg: number): number {
-        let newH = (h + angleDeg / 360) % 1;
-        if (newH < 0) newH += 1;
-        return newH;
-    }
-
-    /**
-     * RGB 색상을 흰색과 섞어 밝게 만듭니다.
-     * @param color       원래 RGB
-     * @param mixFraction 흰색 섞는 비율 (0~1)
-     */
-    function lighten(color: RGB, mixFraction: number = 0.4): RGB {
-        return {
-            r: Math.round(color.r + (255 - color.r) * mixFraction),
-            g: Math.round(color.g + (255 - color.g) * mixFraction),
-            b: Math.round(color.b + (255 - color.b) * mixFraction),
-        };
-    }
 
     const baseRgb = hexToRgb(baseColorHex);
 
     const { h, s, l } = rgbToHsl(baseRgb);
+
     const darkRgb = hslToRgb({
         h,
-        s: 1,
+        s: Math.min(1.0, s * 1.2),
         l: l * 0.7,
     });
 
     const lightRgb = hslToRgb({
-        h: rotateHue(h, -20),
-        s: 1,
+        h: h, // rotateHue(h, -20)
+        s: Math.min(1.0, s * 1.2),
         l,
     });
 
