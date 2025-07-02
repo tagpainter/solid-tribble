@@ -1,5 +1,4 @@
 import type { StrokePoint } from "./stroke-point";
-import paper from "paper";
 
 export class StrokeSnapSampler {
     private path: paper.Path;
@@ -48,10 +47,10 @@ export class StrokeSnapSampler {
         const rawDelta = toOff - fromOff;
         const half = L / 2;
         let signedDelta = rawDelta;
-        if (this.path.closed) {
-            if (rawDelta > half) signedDelta = rawDelta - L;
-            if (rawDelta < -half) signedDelta = rawDelta + L;
-        }
+
+        if (rawDelta > half) signedDelta = rawDelta - L;
+        if (rawDelta < -half) signedDelta = rawDelta + L;
+
         const travelLen = Math.abs(signedDelta);
         const dir = Math.sign(signedDelta);
 
@@ -76,9 +75,8 @@ export class StrokeSnapSampler {
 
         for (const d of dists) {
             let off = fromOff + dir * d;
-            if (this.path.closed) {
-                off = ((off % L) + L) % L;
-            }
+            off = ((off % L) + L) % L;
+
             const locAt = this.path.getLocationAt(off)!;
             const x = locAt.point.x;
             const y = locAt.point.y;

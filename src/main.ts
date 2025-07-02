@@ -11,7 +11,7 @@ import { stringToFloatRGB } from "./utils/color";
 import { loadSvg, svgToUrl } from "./utils/svg";
 import { StrokeSnapSampler } from "./stroke-sampler-snap";
 import paper from "paper";
-import parse, { DxfParser } from "dxf-parser";
+import { DxfParser } from "dxf-parser";
 
 paper.setup([1, 1]);
 paper.view.autoUpdate = false;
@@ -60,7 +60,7 @@ function createBristles(ctx: CanvasRenderingContext2D, dotSize: number, dotCount
     return floatMap;
 }
 
-function createSketchSvg(source: SVGElement) {
+function createSketchSvg(source: SVGSVGElement) {
     const NS = "http://www.w3.org/2000/svg";
 
     const width = source.getAttribute("width");
@@ -73,7 +73,7 @@ function createSketchSvg(source: SVGElement) {
     svg.setAttribute("height", `${height}`);
     svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
 
-    const paths = source.querySelectorAll("path");
+    const paths = source.getElementById("0").querySelectorAll("path");
 
     for (const path of paths) {
         const d = path.getAttribute("d")!;
@@ -90,26 +90,12 @@ function createSketchSvg(source: SVGElement) {
     return svg;
 }
 
-async function testLoadDxf() {
-    const res = await fetch("/artst_path.dxf");
-    const text = await res.text();
-    const parser = new DxfParser();
-    try {
-        const dxf = parser.parseSync(text);
-        console.log(dxf);
-    } catch (error) {
-        console.error(error);
-    }
-}
-
 async function main() {
-    await testLoadDxf();
-
     const svg = await loadSvg("/artst_path.svg");
 
     document.body.appendChild(svg);
 
-    const paths = Array.from(svg.querySelectorAll("path")).map((p) => {
+    const paths = Array.from(svg.getElementById("1").querySelectorAll("path")).map((p) => {
         const computedStyle = getComputedStyle(p);
         return {
             d: p.getAttribute("d")!,
@@ -240,7 +226,7 @@ async function main() {
         wrapT: gl.CLAMP_TO_EDGE,
     });
 
-    const brushSize = 54;
+    const brushSize = 50;
     const brushSpacing = 1;
     const windowCount = 1;
 
