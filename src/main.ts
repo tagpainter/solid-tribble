@@ -150,6 +150,12 @@ function createColorMap(ctx: CanvasRenderingContext2D, dotSize: number, dotCount
         };
     }
 
+    function rotateHue(h: number, angleDeg: number): number {
+        let newH = (h + angleDeg / 360) % 1;
+        if (newH < 0) newH += 1;
+        return newH;
+    }
+
     /**
      * RGB 색상을 흰색과 섞어 밝게 만듭니다.
      * @param color       원래 RGB
@@ -177,7 +183,7 @@ function createColorMap(ctx: CanvasRenderingContext2D, dotSize: number, dotCount
 
     // 4. 밝게 만든 색상 (기존과 동일)
     const lightRgb = hslToRgb({
-        h,
+        h: rotateHue(h, -20),
         s: 1, // 채도 최대로
         l,
     });
