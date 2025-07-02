@@ -11,7 +11,6 @@ import { stringToFloatRGB } from "./utils/color";
 import { loadSvg, svgToUrl } from "./utils/svg";
 import { StrokeSnapSampler } from "./stroke-sampler-snap";
 import paper from "paper";
-import { DxfParser } from "dxf-parser";
 
 paper.setup([1, 1]);
 paper.view.autoUpdate = false;
