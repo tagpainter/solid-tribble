@@ -11,6 +11,7 @@ import { stringToFloatRGB } from "./utils/color";
 import { loadSvg, svgToUrl } from "./utils/svg";
 import { StrokeSnapSampler } from "./stroke-sampler-snap";
 import paper from "paper";
+import rough from "roughjs";
 
 paper.setup([1, 1]);
 paper.view.autoUpdate = false;
@@ -89,7 +90,44 @@ function createSketchSvg(source: SVGSVGElement) {
     return svg;
 }
 
+function createRoughSketchSvg(source: SVGSVGElement) {
+    const NS = "http://www.w3.org/2000/svg";
+
+    const width = source.getAttribute("width");
+    const height = source.getAttribute("height");
+
+    const svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("xmlns", NS);
+    svg.setAttribute("version", "1.2");
+    svg.setAttribute("width", `${width}`);
+    svg.setAttribute("height", `${height}`);
+    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+
+    const rc = rough.svg(svg);
+
+    const paths = source.querySelectorAll("path");
+
+    for (const path of paths) {
+        const d = path.getAttribute("d")!;
+
+        const node = rc.path(d, {
+            stroke: `#666`,
+            roughness: 0.75,
+            bowing: 10,
+            fill: `#6666`,
+            fillStyle: "hatch", // solid fill
+            hachureGap: 5,
+        });
+
+        svg.appendChild(node);
+    }
+
+    return svg;
+}
+
 async function main() {
+    const maskSvg = await loadSvg("/artst_mask.svg");
+
     const svg = await loadSvg("/artst_path.svg");
 
     document.body.appendChild(svg);
@@ -109,7 +147,7 @@ async function main() {
         }
     }
 
-    const sketchSvg = createSketchSvg(svg);
+    const sketchSvg = createRoughSketchSvg(maskSvg);
     const sketchUrl = svgToUrl(sketchSvg);
     const sketchImage = await loadImage(sketchUrl);
     svg.remove();
@@ -232,7 +270,7 @@ async function main() {
         wrapT: gl.CLAMP_TO_EDGE,
     });
 
-    const brushSize = 50;
+    const brushSize = 40;
     const brushSpacing = 1;
     const windowCount = 1;
 

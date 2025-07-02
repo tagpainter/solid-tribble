@@ -13,6 +13,7 @@
         "vite": "^6.3.5"
     },
     "dependencies": {
-        "paper": "^0.12.18"
+        "paper": "^0.12.18",
+        "roughjs": "^4.6.6"
     }
 }
