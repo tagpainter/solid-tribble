@@ -94,13 +94,20 @@ async function main() {
 
     document.body.appendChild(svg);
 
-    const paths = Array.from(svg.getElementById("1").querySelectorAll("path")).map((p) => {
-        const computedStyle = getComputedStyle(p);
-        return {
-            d: p.getAttribute("d")!,
-            color: computedStyle.stroke!,
-        };
-    });
+    const paths: { d: string; color: string }[] = [];
+
+    for (const layer of svg.querySelectorAll("g")) {
+        const id = parseInt(layer.id);
+        if (id > 0) {
+            for (const path of layer.querySelectorAll("path")) {
+                const computedStyle = getComputedStyle(path);
+                paths.push({
+                    d: path.getAttribute("d")!,
+                    color: computedStyle.stroke!,
+                });
+            }
+        }
+    }
 
     const sketchSvg = createSketchSvg(svg);
     const sketchUrl = svgToUrl(sketchSvg);
