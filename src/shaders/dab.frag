@@ -12,8 +12,8 @@ uniform sampler2D uShape;
 uniform sampler2D uBristles;
 uniform sampler2D uGrain;
 uniform sampler2D uPress;
+uniform sampler2D uColor;
 
-uniform vec4 uColor;
 uniform float uPressure;
 uniform float uFlow;
 
@@ -54,14 +54,16 @@ void main() {
     float g = previous.g;
     float b = previous.b;
 
+    vec4 color = texture(uColor, vBristlesUv);
+
     if (height > 0.0) {
         float rate = easeOutCirc(height);
         if (previous.a <= 1.0) {
             rate = clamp(a, 0.0, 1.0);
         }
-        r = mix(r, uColor.r, rate);
-        g = mix(g, uColor.g, rate);
-        b = mix(b, uColor.b, rate);
+        r = mix(r, color.r, rate);
+        g = mix(g, color.g, rate);
+        b = mix(b, color.b, rate);
     }
 
     outColor = vec4(r, g, b, a);

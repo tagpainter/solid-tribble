@@ -60,6 +60,148 @@ function createBristles(ctx: CanvasRenderingContext2D, dotSize: number, dotCount
     return floatMap;
 }
 
+function createColorMap(ctx: CanvasRenderingContext2D, dotSize: number, dotCount: number, baseColorHex: string): void {
+    const { width, height } = ctx.canvas;
+
+    // 1. 배경을 baseColorHex로 채우기
+    ctx.fillStyle = baseColorHex;
+    ctx.fillRect(0, 0, width, height);
+
+    // --- Helper Functions & Types ---
+    interface RGB {
+        r: number;
+        g: number;
+        b: number;
+    }
+
+    /** hex 문자열 → RGB 객체 */
+    function hexToRgb(hex: string): RGB {
+        const h = hex.replace(/^#/, "");
+        const full =
+            h.length === 3
+                ? h
+                      .split("")
+                      .map((c) => c + c)
+                      .join("")
+                : h;
+        const bigint = parseInt(full, 16);
+        return {
+            r: (bigint >> 16) & 0xff,
+            g: (bigint >> 8) & 0xff,
+            b: bigint & 0xff,
+        };
+    }
+
+    /** RGB → HSL */
+    function rgbToHsl({ r, g, b }: RGB): { h: number; s: number; l: number } {
+        const R = r / 255,
+            G = g / 255,
+            B = b / 255;
+        const max = Math.max(R, G, B),
+            min = Math.min(R, G, B);
+        let h = 0,
+            s = 0,
+            l = (max + min) / 2;
+
+        if (max !== min) {
+            const d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch (max) {
+                case R:
+                    h = (G - B) / d + (G < B ? 6 : 0);
+                    break;
+                case G:
+                    h = (B - R) / d + 2;
+                    break;
+                case B:
+                    h = (R - G) / d + 4;
+                    break;
+            }
+            h /= 6;
+        }
+        return { h, s, l };
+    }
+
+    /** HSL → RGB */
+    function hslToRgb({ h, s, l }: { h: number; s: number; l: number }): RGB {
+        function hue2rgb(p: number, q: number, t: number): number {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1 / 6) return p + (q - p) * 6 * t;
+            if (t < 1 / 2) return q;
+            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+            return p;
+        }
+
+        let R: number, G: number, B: number;
+        if (s === 0) {
+            R = G = B = l; // achromatic
+        } else {
+            const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+            const p = 2 * l - q;
+            R = hue2rgb(p, q, h + 1 / 3);
+            G = hue2rgb(p, q, h);
+            B = hue2rgb(p, q, h - 1 / 3);
+        }
+        return {
+            r: Math.round(R * 255),
+            g: Math.round(G * 255),
+            b: Math.round(B * 255),
+        };
+    }
+
+    /**
+     * RGB 색상을 흰색과 섞어 밝게 만듭니다.
+     * @param color       원래 RGB
+     * @param mixFraction 흰색 섞는 비율 (0~1)
+     */
+    function lighten(color: RGB, mixFraction: number = 0.4): RGB {
+        return {
+            r: Math.round(color.r + (255 - color.r) * mixFraction),
+            g: Math.round(color.g + (255 - color.g) * mixFraction),
+            b: Math.round(color.b + (255 - color.b) * mixFraction),
+        };
+    }
+    // --- /Helper Functions ---
+
+    // 2. 기반 색상(RGB) 파싱
+    const baseRgb = hexToRgb(baseColorHex);
+
+    // 3. 채도 100% + 밝기 20% 어두운 색상 만들기
+    const { h, s, l } = rgbToHsl(baseRgb);
+    const darkRgb = hslToRgb({
+        h,
+        s: 1, // 채도 최대로
+        l: Math.max(0, l - 0.2),
+    });
+
+    // 4. 밝게 만든 색상 (기존과 동일)
+    const lightRgb = hslToRgb({
+        h,
+        s: 1, // 채도 최대로
+        l: Math.max(0, l + 0.2),
+    });
+
+    // 5. 랜덤으로 점(dot) 그리기
+    const maxR = Math.min(width, height) * dotSize;
+    for (let i = 0; i < dotCount; i++) {
+        const x = Math.random() * width;
+        const y = Math.random() * height;
+        const r = maxR * (0.5 + Math.random() * 0.5);
+
+        // darkRgb 또는 lightRgb 중 랜덤 선택
+        const c = Math.random() < 0.5 ? darkRgb : lightRgb;
+        const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
+        grad.addColorStop(0, `rgba(${c.r}, ${c.g}, ${c.b}, 1)`);
+        grad.addColorStop(1, `rgba(${c.r}, ${c.g}, ${c.b}, 0)`);
+
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
 function createSketchSvg(source: SVGSVGElement) {
     const NS = "http://www.w3.org/2000/svg";
 
@@ -131,21 +273,6 @@ async function main() {
     const svg = await loadSvg("/artst_path.svg");
 
     document.body.appendChild(svg);
-
-    const paths: { d: string; color: string }[] = [];
-
-    for (const layer of svg.querySelectorAll("g")) {
-        const id = parseInt(layer.id);
-        if (id > 0) {
-            for (const path of layer.querySelectorAll("path")) {
-                const computedStyle = getComputedStyle(path);
-                paths.push({
-                    d: path.getAttribute("d")!,
-                    color: computedStyle.stroke!,
-                });
-            }
-        }
-    }
 
     const sketchSvg = createRoughSketchSvg(maskSvg);
     const sketchUrl = svgToUrl(sketchSvg);
@@ -246,6 +373,37 @@ async function main() {
         wrapT: gl.CLAMP_TO_EDGE,
     });
 
+    const paths: { d: string; color: string; texture: WebGLTexture }[] = [];
+
+    for (const layer of svg.querySelectorAll("g")) {
+        const id = parseInt(layer.id);
+        if (id > 0) {
+            for (const path of layer.querySelectorAll("path")) {
+                const canvas = document.createElement("canvas");
+                canvas.width = 128;
+                canvas.height = 128;
+
+                const ctx = canvas.getContext("2d")!;
+
+                const stroke = path.getAttribute("stroke");
+
+                createColorMap(ctx, 0.05, 100, stroke!);
+
+                paths.push({
+                    d: path.getAttribute("d")!,
+                    color: stroke!,
+                    texture: createTexture(gl, {
+                        image: canvas,
+                        minFilter: gl.LINEAR,
+                        magFilter: gl.LINEAR,
+                        wrapS: gl.CLAMP_TO_EDGE,
+                        wrapT: gl.CLAMP_TO_EDGE,
+                    }),
+                });
+            }
+        }
+    }
+
     let previous = createTextureFramebuffer(gl, {
         width: resolution.x,
         height: resolution.y,
@@ -283,6 +441,7 @@ async function main() {
     let speedAlphaValue = 1;
 
     let color = stringToFloatRGB(colors[0]);
+    let colorTexture: WebGLTexture | null = null;
 
     const dabProgram = createProgram(gl, DAB_VS, DAB_FS);
     const dabAttribs = {
@@ -336,7 +495,7 @@ async function main() {
         gl.vertexAttribDivisor(dabAttribs.aNorm, 0);
 
         gl.uniform2f(dabUniforms.uResolution, resolution.x, resolution.y);
-        gl.uniform4f(dabUniforms.uColor, color[0], color[1], color[2], 1);
+        // gl.uniform4f(dabUniforms.uColor, color[0], color[1], color[2], 1);
 
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, shapeTexture);
@@ -357,6 +516,10 @@ async function main() {
         gl.activeTexture(gl.TEXTURE4);
         gl.bindTexture(gl.TEXTURE_2D, pressTexture);
         gl.uniform1i(dabUniforms.uPress, 4);
+
+        gl.activeTexture(gl.TEXTURE5);
+        gl.bindTexture(gl.TEXTURE_2D, colorTexture!);
+        gl.uniform1i(dabUniforms.uColor, 5);
 
         gl.uniform2f(dabUniforms.uPosition, sample.x, sample.y);
         gl.uniform1f(dabUniforms.uSize, brushSize);
@@ -382,6 +545,7 @@ async function main() {
         let bestDist2 = Infinity;
         let bestPath: paper.Path | null = null;
         let bestColor: string | null = null;
+        let bestTexture: WebGLTexture | null = null;
         for (const p of paths) {
             const path = new paper.Path(p.d);
             const loc = path.getNearestLocation(point)!;
@@ -390,10 +554,11 @@ async function main() {
                 bestDist2 = d2;
                 bestPath = path;
                 bestColor = p.color;
+                bestTexture = p.texture;
             }
         }
         console.log(bestPath);
-        return { path: bestPath!, color: bestColor! };
+        return { path: bestPath!, color: bestColor!, texture: bestTexture };
     }
 
     function copyDab(sample: StrokePoint) {
@@ -447,7 +612,8 @@ async function main() {
         pointerId = e.pointerId;
         sampler = new StrokeSnapSampler(best.path, brushSpacing);
         stabilizer = new StrokeStabilizer(windowCount);
-        color = stringToFloatRGB(best.color);
+        // color = stringToFloatRGB(best.color);
+        colorTexture = best.texture;
 
         speedAlpha = new SpeedAlpha();
         speedAlphaValue = 1;
