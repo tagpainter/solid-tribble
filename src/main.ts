@@ -168,23 +168,19 @@ function createColorMap(ctx: CanvasRenderingContext2D, dotSize: number, dotCount
             b: Math.round(color.b + (255 - color.b) * mixFraction),
         };
     }
-    // --- /Helper Functions ---
 
-    // 2. 기반 색상(RGB) 파싱
     const baseRgb = hexToRgb(baseColorHex);
 
-    // 3. 채도 100% + 밝기 20% 어두운 색상 만들기
     const { h, s, l } = rgbToHsl(baseRgb);
     const darkRgb = hslToRgb({
         h,
-        s: 1, // 채도 최대로
-        l: l * 0.8,
+        s: 1,
+        l: l * 0.7,
     });
 
-    // 4. 밝게 만든 색상 (기존과 동일)
     const lightRgb = hslToRgb({
         h: rotateHue(h, -20),
-        s: 1, // 채도 최대로
+        s: 1,
         l,
     });
 
@@ -284,23 +280,6 @@ async function main() {
     const sketchUrl = svgToUrl(sketchSvg);
     const sketchImage = await loadImage(sketchUrl);
     svg.remove();
-
-    const colorDiv = document.createElement("div");
-    document.body.appendChild(colorDiv);
-
-    for (const c of colors) {
-        const colorButton = document.createElement("button");
-
-        colorButton.style.width = "30px";
-        colorButton.style.height = "30px";
-        colorButton.style.border = "0px";
-        colorButton.style.backgroundColor = c;
-        colorButton.onclick = () => {
-            color = stringToFloatRGB(c);
-        };
-
-        colorDiv.appendChild(colorButton);
-    }
 
     const bristlesCanvas = document.createElement("canvas");
     bristlesCanvas.width = 128;
