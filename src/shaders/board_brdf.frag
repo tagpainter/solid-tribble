@@ -6,14 +6,15 @@ in vec2 vUv;
 uniform vec2 uResolution;
 uniform sampler2D uTexture;
 uniform sampler2D uSketch;
+uniform vec3 uLightDirection;
 
 out vec4 outColor;
 
 const float PI = 3.14159265;
-const float diffuseScale = 0.05;
-const float specularScale = 1.0;
+const float diffuseScale = 0.1;
+const float specularScale = 4.0;
 const float F0 = 0.05;
-const float roughness = 0.175; // 0.125;
+const float roughness = 0.2; // 0.125;
 
 const vec3 eyeDirection = vec3(0.0, 0.0, 1.0);
 const vec3 lightDirection = vec3(-1.0, 2.0, 1.0);
@@ -96,10 +97,10 @@ void main() {
     vec2 gradient = computeGradient(vUv);
     vec3 normal = normalize(vec3(gradient.xy, 1.0));
 
-    float diffuse = (dot(lightDirection, vec3(normal.xy, 1.0)));
+    float diffuse = (dot(uLightDirection, vec3(normal.xy, 1.0)));
     diffuse = diffuse * diffuseScale + (1.0 - diffuseScale);
 
-    float specular = specularBRDF(lightDirection, eyeDirection, normal, roughness, F0);
+    float specular = specularBRDF(uLightDirection, eyeDirection, normal, roughness, F0);
     
     vec4 color = texture(uTexture, vUv);
 
@@ -111,6 +112,7 @@ void main() {
     }
 
     vec3 inkColor = rgb * diffuse + specular * specularScale;
+    inkColor = clamp(inkColor, 0.0, 1.0);
 
     vec3 bg = vec3(1.0, 1.0, 1.0);
 

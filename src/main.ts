@@ -12,10 +12,13 @@ import { loadSvg, svgToUrl } from "./utils/svg";
 import { StrokeSnapSampler } from "./stroke-sampler-snap";
 import paper from "paper";
 import rough from "roughjs";
+import { StrokeSampler } from "./stroke-sampler";
 
 paper.setup([1, 1]);
 paper.view.autoUpdate = false;
 paper.settings.insertItems = false;
+
+const SAMPLER_TYPE: "snap" | "spline" = "snap";
 
 const resolution = {
     x: 1024,
@@ -75,7 +78,7 @@ function createColorMap(ctx: CanvasRenderingContext2D, dotSize: number, dotCount
     });
 
     const lightRgb = hslToRgb({
-        h: h, // rotateHue(h, -20)
+        h,
         s: Math.min(1.0, s * 1.2),
         l,
     });
@@ -316,14 +319,13 @@ async function main() {
     const windowCount = 1;
 
     let pointerId: number | null = null;
-    let sampler: StrokeSnapSampler | null = null;
+    let sampler: StrokeSnapSampler | StrokeSampler | null = null;
     let stabilizer = new StrokeStabilizer(windowCount);
     let lastPoint: PointerEvent | null = null;
 
     let speedAlpha = new SpeedAlpha();
     let speedAlphaValue = 1;
 
-    let color: string | null = null;
     let colorTexture: WebGLTexture | null = null;
 
     const dabProgram = createProgram(gl, DAB_VS, DAB_FS);
@@ -367,6 +369,7 @@ async function main() {
         uResolution: gl.getUniformLocation(boardProgram, "uResolution")!,
         uTexture: gl.getUniformLocation(boardProgram, "uTexture")!,
         uSketch: gl.getUniformLocation(boardProgram, "uSketch"),
+        uLightDirection: gl.getUniformLocation(boardProgram, "uLightDirection"),
     };
 
     function addDab(sample: StrokePoint) {
@@ -493,9 +496,8 @@ async function main() {
         });
 
         pointerId = e.pointerId;
-        sampler = new StrokeSnapSampler(best.path, brushSpacing);
+        sampler = SAMPLER_TYPE === "snap" ? new StrokeSnapSampler(best.path, brushSpacing) : new StrokeSampler(brushSpacing);
         stabilizer = new StrokeStabilizer(windowCount);
-        // color = stringToFloatRGB(best.color);
         colorTexture = best.texture;
 
         speedAlpha = new SpeedAlpha();
@@ -558,7 +560,9 @@ async function main() {
         }
     });
 
-    function tick() {
+    const orig = [-1, 2, 1];
+
+    function tick(timeMs: number) {
         gl.disable(gl.BLEND);
 
         gl.useProgram(boardProgram);
@@ -574,6 +578,8 @@ async function main() {
         gl.vertexAttribPointer(boardAttribs.aUv, 2, gl.FLOAT, false, 0, 0);
 
         gl.uniform2f(boardUniforms.uResolution, resolution.x, resolution.y);
+
+        gl.uniform3fv(boardUniforms.uLightDirection, orig);
 
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, current.texture);

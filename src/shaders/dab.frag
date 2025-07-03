@@ -19,6 +19,10 @@ uniform float uFlow;
 
 out vec4 outColor;
 
+const float MAX_HEIGHT = 1.0;
+const float ADD_EXTRA_HEIGHT = 2.0;
+const float ADD_EDGE_HEIGHT = 1.0; 
+
 float easeOutCirc(float t) {
     return sqrt(1.0 - (t - 1.0) * (t - 1.0));
 }
@@ -38,14 +42,12 @@ void main() {
 
     float height = bristle * shape.r * uFlow;
 
-    float a = previous.a;
+    float a = previous.a + height;
 
     if (previous.a > 0.0 && height > 0.0) {
-        float clamped = mix(previous.a, 1.0, mix(0.5, 1.0, bristle));
-        a = clamped + height * 4.0;
-        a += (1.0 - press.r) * shape.r * 1.0;
-    } else {
-        a += height;
+        float clamped = mix(previous.a, MAX_HEIGHT, mix(0.5, 1.0, bristle));
+        a = clamped + height * ADD_EXTRA_HEIGHT;
+        a += (1.0 - press.r) * shape.r * ADD_EDGE_HEIGHT;
     }
 
     a = mix(a, last.a, height * 0.2);
