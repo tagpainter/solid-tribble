@@ -4,10 +4,10 @@ import { loadImage } from "./utils/image";
 import DAB_VS from "./shaders/dab.vert?raw";
 import DAB_FS from "./shaders/dab.frag?raw";
 import BOARD_VS from "./shaders/board.vert?raw";
-import BOARD_FS from "./shaders/board.frag?raw";
+import BOARD_FS from "./shaders/board_brdf.frag?raw";
 import type { StrokePoint } from "./stroke-point";
 import { SpeedAlpha } from "./speed-alpha";
-import { hexToRgb, hslToRgb, rgbToHsl, stringToFloatRGB } from "./utils/color";
+import { hexToRgb, hslToRgb, rgbToHsl } from "./utils/color";
 import { loadSvg, svgToUrl } from "./utils/svg";
 import { StrokeSnapSampler } from "./stroke-sampler-snap";
 import paper from "paper";
@@ -269,7 +269,8 @@ async function main() {
 
                 const stroke = path.getAttribute("stroke");
 
-                createColorMap(ctx, 0.05, 100, stroke!);
+                createColorMap(ctx, 0.05, 0, stroke!);
+                // createColorMap(ctx, 0.05, 100, stroke!);
 
                 paths.push({
                     d: path.getAttribute("d")!,
