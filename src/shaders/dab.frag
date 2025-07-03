@@ -38,18 +38,19 @@ void main() {
 
     float height = bristle * shape.r * uFlow;
 
-    float a = previous.a + height;
+    float a = previous.a;
 
     if (previous.a > 0.0 && height > 0.0) {
         float clamped = mix(previous.a, 1.0, mix(0.5, 1.0, bristle));
         a = clamped + height * 4.0;
         a += (1.0 - press.r) * shape.r * 1.0;
+    } else {
+        a += height;
     }
 
     a = mix(a, last.a, height * 0.2);
     a = max(a, 0.0);
 
-    // RGB 블렌딩
     float r = previous.r;
     float g = previous.g;
     float b = previous.b;

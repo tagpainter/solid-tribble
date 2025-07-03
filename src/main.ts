@@ -7,7 +7,7 @@ import BOARD_VS from "./shaders/board.vert?raw";
 import BOARD_FS from "./shaders/board.frag?raw";
 import type { StrokePoint } from "./stroke-point";
 import { SpeedAlpha } from "./speed-alpha";
-import { hexToRgb, hslToRgb, rgbToHsl, rotateHue, stringToFloatRGB, type Rgb } from "./utils/color";
+import { hexToRgb, hslToRgb, rgbToHsl, stringToFloatRGB } from "./utils/color";
 import { loadSvg, svgToUrl } from "./utils/svg";
 import { StrokeSnapSampler } from "./stroke-sampler-snap";
 import paper from "paper";
@@ -16,8 +16,6 @@ import rough from "roughjs";
 paper.setup([1, 1]);
 paper.view.autoUpdate = false;
 paper.settings.insertItems = false;
-
-const colors = ["#d3b997", "#4f7bd5", "#34cff0", "#f03fa7", "#ffc05f", "#3957b6"];
 
 const resolution = {
     x: 1024,
@@ -157,8 +155,8 @@ function createRoughSketchSvg(source: SVGSVGElement) {
             roughness: 0.75,
             bowing: 10,
             fill: `#6666`,
-            fillStyle: "hatch", // solid fill
-            hachureGap: 5,
+            fillStyle: "zigzag",
+            hachureGap: 7,
         });
 
         svg.appendChild(node);
@@ -171,6 +169,7 @@ async function main() {
     const maskSvg = await loadSvg("/artst_mask.svg");
 
     const svg = await loadSvg("/artst_path.svg");
+    svg.style.display = "none";
 
     document.body.appendChild(svg);
 
@@ -207,7 +206,7 @@ async function main() {
 
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-    gl.clearColor(0, 0, 0, 1);
+    gl.clearColor(1, 1, 1, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
     const quadBuffer = createBuffer(gl, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
@@ -323,7 +322,7 @@ async function main() {
     let speedAlpha = new SpeedAlpha();
     let speedAlphaValue = 1;
 
-    let color = stringToFloatRGB(colors[0]);
+    let color: string | null = null;
     let colorTexture: WebGLTexture | null = null;
 
     const dabProgram = createProgram(gl, DAB_VS, DAB_FS);
