@@ -269,8 +269,8 @@ async function main() {
 
                 const stroke = path.getAttribute("stroke");
 
-                createColorMap(ctx, 0.05, 0, stroke!);
-                // createColorMap(ctx, 0.05, 100, stroke!);
+                // createColorMap(ctx, 0.05, 0, stroke!);
+                createColorMap(ctx, 0.05, 100, stroke!);
 
                 paths.push({
                     d: path.getAttribute("d")!,

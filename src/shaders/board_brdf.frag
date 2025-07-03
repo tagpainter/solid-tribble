@@ -10,10 +10,10 @@ uniform sampler2D uSketch;
 out vec4 outColor;
 
 const float PI = 3.14159265;
-const float diffuseScale = 0.1;
+const float diffuseScale = 0.05;
 const float specularScale = 1.0;
 const float F0 = 0.05;
-const float roughness = 0.25; // 0.125;
+const float roughness = 0.175; // 0.125;
 
 const vec3 eyeDirection = vec3(0.0, 0.0, 1.0);
 const vec3 lightDirection = vec3(-1.0, 2.0, 1.0);
